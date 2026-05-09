@@ -217,5 +217,5 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND...
 
 ## 연락처
 
-- Issues: [GitHub Issues](https://github.com/<biofit-research>/inpatient-care
-- 임상 검수 기여: PR 또는 [Discussions](https://github.com/<biofit-research>/inpatient-care)
+- Issues: [GitHub Issues](https://github.com/biofit-research/inpatient-care
+- 임상 검수 기여: PR 또는 [Discussions](https://github.com/biofit-research/inpatient-care)
