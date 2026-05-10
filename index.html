@@ -2092,6 +2092,7 @@ function RiskAssessment(props) {
   });
   const [state, setState] = useState(initState);
   const [showAssessment, setShowAssessment] = useState(!embedded);
+  const [specificDx, setSpecificDx] = useState('none');
 
   function toggle(key, idx) {
     setState(s => { const arr = s[key].slice(); arr[idx] = !arr[idx]; return Object.assign({}, s, { [key]: arr }); });
@@ -2380,6 +2381,82 @@ function RiskAssessment(props) {
         _e('button', { onClick: () => window.print(), style: { background:'transparent', border:'1px solid '+BORDER, padding:'8px 14px', borderRadius:'4px', cursor:'pointer', fontFamily:'inherit', fontSize:'13px', color:INK } }, '인쇄'),
         _e('button', { onClick: reset, style: { background:'transparent', border:'1px solid '+BORDER, padding:'8px 14px', borderRadius:'4px', cursor:'pointer', fontFamily:'inherit', fontSize:'13px', color:INK } }, '초기화')
       )
+    ),
+
+    // ===== 진단 특이 사망률 평가 도구 (선택적) =====
+    _e('section', { style: { marginTop: '20px', padding: '18px 22px', background: '#FFFFFF', border: '1px solid '+BORDER, borderRadius: '4px' } },
+      _e('h3', { style: { margin: '0 0 8px', fontSize: '16px', fontWeight: 600, color: INK } }, '진단 특이 사망률 평가 도구'),
+      _e('p', { style: { margin: '0 0 12px', fontSize: '13px', color: SUB, lineHeight: 1.6 } },
+        '환자 주진단에 따라 아래 도구 중 해당하는 것을 선택해 펼쳐서 사용하세요. ',
+        _e('strong', null, '일반 5개 도구와 합산하지 않습니다'), ' — 진단 특이 도구는 그 진단의 사망률을 더 정확히 추정하는 ', _e('strong', null, '대체 도구'), '로 사용합니다.'
+      ),
+
+      // 매핑 안내 박스
+      _e('div', { style: { background: '#E6F1FB', borderLeft: '3px solid '+ACCENT_BLUE, padding: '10px 14px', marginBottom: '14px', fontSize: '12px', lineHeight: 1.7, color: INK } },
+        _e('strong', { style: { color: ACCENT_BLUE } }, '진단별 권장 도구'), _e('br'),
+        _e('strong', null, 'COPD 급성악화 (J44)'), ' → DECAF (입원·30일) + BODE (외래·4년)', _e('br'),
+        _e('strong', null, '천식 (J45)'), ' → GINA 위험인자 (점수 아님 — 위험군 식별)', _e('br'),
+        _e('strong', null, 'ACS · 협심증 · 심근경색 (I20·I21·I24·I25)'), ' → GRACE (입원·6개월)', _e('br'),
+        _e('strong', null, '심부전 (I50)'), ' → MAGGIC (1년·3년, 외래·퇴원 시점)'
+      ),
+
+      // 점수 해석 안내
+      _e('div', { style: { background: '#FAEEDA', border: '1px solid #EF9F27', padding: '10px 14px', marginBottom: '14px', fontSize: '12px', lineHeight: 1.7, color: '#633806' } },
+        _e('strong', null, '⚠ 여러 도구 결과 결합 시 주의'), _e('br'),
+        '• 사망률은 ', _e('strong', null, '단순 합산하지 않음'), ' (위험인자가 겹치고 시간 단위가 다름)', _e('br'),
+        '• 시간별 ', _e('strong', null, '최댓값 (max) 사용'), ': 30일 = max(CURB-65, qSOFA, DECAF), 1년 = max(Charlson, CFS, MAGGIC 1년)', _e('br'),
+        '• ', _e('strong', null, '진단 특이 도구를 우선'), '하고, 일반 도구(Charlson·CFS)는 baseline 보조 정보로 활용', _e('br'),
+        '• 여러 도구가 ', _e('strong', null, '일치하면 신뢰도↑'), ', 불일치 시 dominant 진단을 기준으로 판단'
+      ),
+
+      // 진단 칩 셀렉터
+      _e('div', { style: { marginBottom: '14px' } },
+        _e('div', { style: { fontSize: '12px', color: SUB, marginBottom: '8px', fontWeight: 600 } }, '환자 주진단 — 선택 시 해당 도구만 노출'),
+        _e('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } },
+          [
+            { id: 'none', label: '해당없음 / 일반', sub: '' },
+            { id: 'copd', label: 'COPD 급성악화', sub: 'DECAF + BODE' },
+            { id: 'asthma', label: '천식', sub: 'GINA' },
+            { id: 'acs', label: '허혈성 심질환', sub: 'GRACE' },
+            { id: 'hf', label: '심부전', sub: 'MAGGIC' }
+          ].map(opt => {
+            const active = specificDx === opt.id;
+            return _e('button', {
+              key: opt.id,
+              onClick: () => setSpecificDx(opt.id),
+              style: {
+                background: active ? ACCENT_BLUE : '#fff',
+                color: active ? '#fff' : SUB,
+                border: '1px solid ' + (active ? ACCENT_BLUE : BORDER),
+                padding: '8px 14px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: '13px',
+                fontWeight: active ? 600 : 500,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '2px',
+                lineHeight: 1.3
+              }
+            },
+              _e('span', null, opt.label),
+              opt.sub ? _e('span', { style: { fontSize: '10px', opacity: active ? 0.85 : 0.6, fontWeight: 500 } }, '→ ' + opt.sub) : null
+            );
+          })
+        )
+      ),
+
+      // 선택된 진단에 따른 도구 (자동 펼침)
+      specificDx === 'copd' ? _e(React.Fragment, null,
+        _e(DECAFTool, { key: 'decaf-' + specificDx, startOpen: true }),
+        _e(BODETool, { key: 'bode-' + specificDx, startOpen: true })
+      ) : null,
+      specificDx === 'asthma' ? _e(GINATool, { key: 'gina-' + specificDx, startOpen: true }) : null,
+      specificDx === 'acs' ? _e(GRACETool, { key: 'grace-' + specificDx, startOpen: true }) : null,
+      specificDx === 'hf' ? _e(MAGGICTool, { key: 'maggic-' + specificDx, startOpen: true }) : null,
+      specificDx === 'none' ? _e('div', { style: { padding: '20px', background: '#F5F5F0', borderRadius: '4px', fontSize: '12px', color: SUB, textAlign: 'center' } }, '진단을 선택하면 해당 도구가 자동으로 표시됩니다. 일반 5개 도구만 사용해도 됩니다.') : null
     )
   );
 }
@@ -2560,6 +2637,464 @@ function MortalityGuide() {
   );
 }
 
+// =================== 진단 특이 사망률 예측 도구 ===================
+const DIAGNOSIS_SPECIFIC_TOOLS = {
+  'I50': ['MAGGIC'],
+  'I20': ['GRACE'], 'I21': ['GRACE'], 'I24': ['GRACE'], 'I25': ['GRACE'],
+  'J44': ['DECAF', 'BODE'],
+  'J45': ['GINA']
+};
+
+// ===== DECAF Score (COPD 급성악화) =====
+function calcDECAF(s) {
+  let score = 0;
+  if (s.decaf_dyspnea === '5a') score += 1;
+  else if (s.decaf_dyspnea === '5b') score += 2;
+  if (s.decaf_eos) score += 1;
+  if (s.decaf_cons) score += 1;
+  if (s.decaf_acid) score += 1;
+  if (s.decaf_afib) score += 1;
+  const mTable = [0.7, 1.4, 5.4, 15.3, 31, 50, 50];
+  const mortality = mTable[Math.min(score, 6)];
+  let tier;
+  if (score <= 1) tier = 'low';
+  else if (score === 2) tier = 'mid';
+  else tier = 'high';
+  return { score, mortality, tier };
+}
+
+// ===== BODE Index (COPD 만성/외래) =====
+function calcBODE(s) {
+  let score = 0;
+  if (s.bode_bmi !== '' && parseFloat(s.bode_bmi) <= 21) score += 1;
+  const fev = parseFloat(s.bode_fev);
+  if (!isNaN(fev)) {
+    if (fev <= 35) score += 3;
+    else if (fev <= 49) score += 2;
+    else if (fev <= 64) score += 1;
+  }
+  const mmrc = parseInt(s.bode_mmrc);
+  if (!isNaN(mmrc)) {
+    if (mmrc === 4) score += 3;
+    else if (mmrc === 3) score += 2;
+    else if (mmrc === 2) score += 1;
+  }
+  const dist = parseFloat(s.bode_dist);
+  if (!isNaN(dist)) {
+    if (dist <= 149) score += 3;
+    else if (dist <= 249) score += 2;
+    else if (dist <= 349) score += 1;
+  }
+  let mort4y, tier;
+  if (score <= 2) { mort4y = 20; tier = 'low'; }
+  else if (score <= 4) { mort4y = 30; tier = 'mid'; }
+  else if (score <= 6) { mort4y = 40; tier = 'mid'; }
+  else { mort4y = 80; tier = 'high'; }
+  return { score, mort4y, tier };
+}
+
+// ===== GINA Risk Factors (천식 사망 위험) =====
+const GINA_FACTORS = [
+  '과거 근사망성 천식(near-fatal asthma) 발작',
+  '최근 1년 내 응급실 방문 또는 입원',
+  '과거 기관삽관·NIV 사용력',
+  '흡입 스테로이드(ICS) 미사용 또는 부순응',
+  'SABA 과다 사용 (월 1개 canister 이상)',
+  '정신과 질환·심리사회적 문제',
+  '식품 알레르기 동반',
+  '현재 흡연 또는 e-cig 사용'
+];
+function calcGINA(s) {
+  const count = (s.gina || []).filter(Boolean).length;
+  let tier;
+  if (count >= 3) tier = 'high';
+  else if (count >= 1) tier = 'mid';
+  else tier = 'low';
+  return { count, tier };
+}
+
+// ===== GRACE Score (ACS) =====
+function calcGRACE(s) {
+  const age = parseFloat(s.grace_age);
+  const hr = parseFloat(s.grace_hr);
+  const sbp = parseFloat(s.grace_sbp);
+  const cr = parseFloat(s.grace_cr);
+  let score = 0;
+  if (!isNaN(age)) {
+    if (age < 30) score += 0;
+    else if (age < 40) score += 8;
+    else if (age < 50) score += 25;
+    else if (age < 60) score += 41;
+    else if (age < 70) score += 58;
+    else if (age < 80) score += 75;
+    else if (age < 90) score += 91;
+    else score += 100;
+  }
+  if (!isNaN(hr)) {
+    if (hr < 50) score += 0;
+    else if (hr < 70) score += 3;
+    else if (hr < 90) score += 9;
+    else if (hr < 110) score += 15;
+    else if (hr < 150) score += 24;
+    else if (hr < 200) score += 38;
+    else score += 46;
+  }
+  if (!isNaN(sbp)) {
+    if (sbp < 80) score += 58;
+    else if (sbp < 100) score += 53;
+    else if (sbp < 120) score += 43;
+    else if (sbp < 140) score += 34;
+    else if (sbp < 160) score += 24;
+    else if (sbp < 200) score += 10;
+    else score += 0;
+  }
+  if (!isNaN(cr)) {
+    if (cr < 0.4) score += 1;
+    else if (cr < 0.8) score += 4;
+    else if (cr < 1.2) score += 7;
+    else if (cr < 1.6) score += 10;
+    else if (cr < 2.0) score += 13;
+    else if (cr < 4.0) score += 21;
+    else score += 28;
+  }
+  const killipPts = { '1': 0, '2': 20, '3': 39, '4': 59 };
+  if (s.grace_killip) score += killipPts[s.grace_killip] || 0;
+  if (s.grace_arrest) score += 39;
+  if (s.grace_st) score += 28;
+  if (s.grace_biomarker) score += 14;
+  let tier, mortInHosp, mort6mo;
+  if (score <= 108) { tier = 'low'; mortInHosp = '<1'; mort6mo = '~3'; }
+  else if (score <= 140) { tier = 'mid'; mortInHosp = '1-3'; mort6mo = '4-8'; }
+  else if (score <= 180) { tier = 'high'; mortInHosp = '4-10'; mort6mo = '11-18'; }
+  else { tier = 'high'; mortInHosp = '>10'; mort6mo = '>18'; }
+  return { score, mortInHosp, mort6mo, tier };
+}
+
+// ===== MAGGIC Risk Score (심부전, 단순화) =====
+function calcMAGGIC(s) {
+  let score = 0;
+  const age = parseFloat(s.maggic_age);
+  const ef = parseFloat(s.maggic_ef);
+  const sbp = parseFloat(s.maggic_sbp);
+  const cr = parseFloat(s.maggic_cr);
+  const bmi = parseFloat(s.maggic_bmi);
+  const nyha = parseInt(s.maggic_nyha);
+
+  if (!isNaN(age)) {
+    if (age < 55) score += 0;
+    else if (age < 65) score += 6;
+    else if (age < 75) score += 13;
+    else if (age < 85) score += 22;
+    else score += 31;
+  }
+  if (!isNaN(ef)) {
+    if (ef >= 40) score += 0;
+    else if (ef >= 30) score += 3;
+    else if (ef >= 25) score += 5;
+    else if (ef >= 20) score += 6;
+    else score += 7;
+  }
+  if (!isNaN(sbp)) {
+    if (sbp >= 150) score += 0;
+    else if (sbp >= 130) score += 2;
+    else if (sbp >= 110) score += 4;
+    else score += 6;
+  }
+  if (!isNaN(bmi)) {
+    if (bmi >= 30) score += 0;
+    else if (bmi >= 25) score += 1;
+    else if (bmi >= 20) score += 3;
+    else score += 6;
+  }
+  if (!isNaN(cr)) {
+    if (cr < 1) score += 0;
+    else if (cr < 1.5) score += 2;
+    else if (cr < 2) score += 4;
+    else if (cr < 2.5) score += 6;
+    else score += 9;
+  }
+  if (!isNaN(nyha)) {
+    if (nyha === 1) score += 0;
+    else if (nyha === 2) score += 2;
+    else if (nyha === 3) score += 6;
+    else if (nyha === 4) score += 8;
+  }
+  if (s.maggic_male) score += 1;
+  if (s.maggic_dm) score += 3;
+  if (s.maggic_copd) score += 2;
+  if (s.maggic_smoker) score += 1;
+  if (s.maggic_recent) score += 2;
+  if (s.maggic_no_bb) score += 3;
+  if (s.maggic_no_acei) score += 1;
+
+  let mort1y, mort3y, tier;
+  if (score <= 16) { mort1y = '~5'; mort3y = '~15'; tier = 'low'; }
+  else if (score <= 26) { mort1y = '~10'; mort3y = '~28'; tier = 'mid'; }
+  else if (score <= 36) { mort1y = '~25'; mort3y = '~50'; tier = 'high'; }
+  else { mort1y = '~50'; mort3y = '~75'; tier = 'high'; }
+  return { score, mort1y, mort3y, tier };
+}
+
+// ===== 공통 UI 헬퍼 =====
+function _toolColors(tier) {
+  if (tier === 'low') return { bg: '#DCEAE3', fg: '#1F6E5C', border: '#1F6E5C' };
+  if (tier === 'mid') return { bg: '#FAEEDA', fg: '#633806', border: '#BA7517' };
+  if (tier === 'high') return { bg: '#FCEBEB', fg: '#791F1F', border: '#A32D2D' };
+  return { bg: '#F5F5F0', fg: '#5A6473', border: '#888' };
+}
+
+// ===== Tool Container Component =====
+function ToolCard(props) {
+  const _e = React.createElement;
+  const [expanded, setExpanded] = useState(!!(props && props.startOpen));
+  const ACCENT = '#0C447C';
+  const SUB = '#5A6473';
+  const BORDER = '#E0E5EA';
+  return _e('div', { style: { background: '#fff', border: '1px solid ' + ACCENT, borderRadius: '6px', marginBottom: '14px', overflow: 'hidden' } },
+    _e('button', {
+      onClick: () => setExpanded(!expanded),
+      style: { width: '100%', padding: '14px 18px', background: expanded ? '#E6F1FB' : '#F5F8FC', border: 'none', borderBottom: expanded ? '1px solid ' + BORDER : 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }
+    },
+      _e('div', null,
+        _e('div', { style: { fontSize: '11px', color: ACCENT, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' } }, '진단 특이 도구'),
+        _e('div', { style: { fontSize: '15px', fontWeight: 700, color: ACCENT, marginTop: '2px' } }, props.title),
+        _e('div', { style: { fontSize: '12px', color: SUB, marginTop: '2px' } }, props.subtitle)
+      ),
+      _e('span', { style: { fontSize: '20px', color: ACCENT, fontWeight: 300 } }, expanded ? '−' : '+')
+    ),
+    expanded ? _e('div', { style: { padding: '18px 20px' } }, props.children) : null
+  );
+}
+
+// ===== DECAF Tool =====
+function DECAFTool(props) {
+  const _e = React.createElement;
+  const [s, setS] = useState({ decaf_dyspnea: '', decaf_eos: false, decaf_cons: false, decaf_acid: false, decaf_afib: false });
+  const r = calcDECAF(s);
+  const c = _toolColors(r.tier);
+  function chk(label, key) {
+    return _e('label', { style: { display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '6px 0', cursor: 'pointer' } },
+      _e('input', { type: 'checkbox', checked: s[key], onChange: e => setS(Object.assign({}, s, { [key]: e.target.checked })), style: { marginTop: '3px' } }),
+      _e('span', { style: { fontSize: '13px', lineHeight: 1.5 } }, label)
+    );
+  }
+  return _e(ToolCard, { title: 'DECAF Score', subtitle: 'COPD 급성악화 30일 사망률 (Steer 2012, Thorax)', startOpen: props && props.startOpen },
+    _e('div', { style: { fontSize: '13px', color: '#5A6473', marginBottom: '10px' } }, '5개 변수, 침상 즉시 산출 가능. 입원 첫 검사 결과로 평가.'),
+    _e('div', null,
+      _e('label', { style: { display: 'block', fontSize: '12px', color: '#5A6473', marginBottom: '4px', fontWeight: 600 } }, 'D — Dyspnea (eMRCD)'),
+      _e('select', { value: s.decaf_dyspnea, onChange: e => setS(Object.assign({}, s, { decaf_dyspnea: e.target.value })), style: { width: '100%', padding: '8px', border: '1px solid #E0E5EA', borderRadius: '4px', fontFamily: 'inherit', fontSize: '13px' } },
+        _e('option', { value: '' }, '— 선택 —'),
+        _e('option', { value: '0' }, 'eMRCD ≤4 (0점)'),
+        _e('option', { value: '5a' }, 'eMRCD 5a · 옷 갈아입기 도움 필요 (+1)'),
+        _e('option', { value: '5b' }, 'eMRCD 5b · 세수에도 도움 필요 (+2)')
+      )
+    ),
+    chk('E — Eosinopenia · 호산구 < 0.05 × 10⁹/L', 'decaf_eos'),
+    chk('C — Consolidation on CXR · 폐 경화 영상', 'decaf_cons'),
+    chk('A — Acidemia · pH < 7.30', 'decaf_acid'),
+    chk('F — Atrial Fibrillation · 새로운/기존 심방세동', 'decaf_afib'),
+    _e('div', { style: { background: c.bg, color: c.fg, border: '1px solid ' + c.border, padding: '12px 16px', borderRadius: '4px', marginTop: '12px' } },
+      _e('div', { style: { fontSize: '13px', fontWeight: 600, marginBottom: '4px' } }, 'DECAF Score: ', _e('span', { style: { fontSize: '20px', fontWeight: 700 } }, r.score), ' / 6'),
+      _e('div', { style: { fontSize: '13px' } }, '30일 사망률 추정 ', _e('strong', null, '~' + r.mortality + '%'), ' · ',
+        r.tier === 'low' ? '저위험' : r.tier === 'mid' ? '중등위험 (입원 검토)' : '고위험 (ICU 검토 + 사전돌봄계획 논의)')
+    )
+  );
+}
+
+// ===== BODE Tool =====
+function BODETool(props) {
+  const _e = React.createElement;
+  const [s, setS] = useState({ bode_bmi: '', bode_fev: '', bode_mmrc: '', bode_dist: '' });
+  const r = calcBODE(s);
+  const c = _toolColors(r.tier);
+  function num(label, key, ph) {
+    return _e('div', null,
+      _e('label', { style: { display: 'block', fontSize: '12px', color: '#5A6473', marginBottom: '4px', fontWeight: 600 } }, label),
+      _e('input', { type: 'number', value: s[key], onChange: e => setS(Object.assign({}, s, { [key]: e.target.value })), placeholder: ph, style: { width: '100%', padding: '8px', border: '1px solid #E0E5EA', borderRadius: '4px', fontFamily: 'inherit', fontSize: '13px' } })
+    );
+  }
+  return _e(ToolCard, { title: 'BODE Index', subtitle: 'COPD 4년 사망률 (Celli 2004, NEJM) — 외래 추적용', startOpen: props && props.startOpen },
+    _e('div', { style: { fontSize: '13px', color: '#5A6473', marginBottom: '10px' } }, '4개 변수(BMI, FEV1, mMRC, 6분 보행거리)로 0–10점. 외래·재활 평가에 사용.'),
+    _e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' } },
+      num('B — BMI (kg/m²)', 'bode_bmi', '예: 22.5'),
+      num('O — FEV1 % 예측치', 'bode_fev', '예: 55'),
+      _e('div', null,
+        _e('label', { style: { display: 'block', fontSize: '12px', color: '#5A6473', marginBottom: '4px', fontWeight: 600 } }, 'D — mMRC dyspnea'),
+        _e('select', { value: s.bode_mmrc, onChange: e => setS(Object.assign({}, s, { bode_mmrc: e.target.value })), style: { width: '100%', padding: '8px', border: '1px solid #E0E5EA', borderRadius: '4px', fontFamily: 'inherit', fontSize: '13px' } },
+          _e('option', { value: '' }, '—'),
+          _e('option', { value: '0' }, '0 · 격렬한 운동 시'),
+          _e('option', { value: '1' }, '1 · 평지 빠른 걸음'),
+          _e('option', { value: '2' }, '2 · 평지 또래보다 느림'),
+          _e('option', { value: '3' }, '3 · 100m 걷고 쉼'),
+          _e('option', { value: '4' }, '4 · 옷 갈아입기 어려움')
+        )
+      ),
+      num('E — 6분 보행거리 (m)', 'bode_dist', '예: 320')
+    ),
+    _e('div', { style: { background: c.bg, color: c.fg, border: '1px solid ' + c.border, padding: '12px 16px', borderRadius: '4px', marginTop: '12px' } },
+      _e('div', { style: { fontSize: '13px', fontWeight: 600, marginBottom: '4px' } }, 'BODE Index: ', _e('span', { style: { fontSize: '20px', fontWeight: 700 } }, r.score), ' / 10'),
+      _e('div', { style: { fontSize: '13px' } }, '4년 사망률 추정 ', _e('strong', null, '~' + r.mort4y + '%'))
+    )
+  );
+}
+
+// ===== GINA Tool =====
+function GINATool(props) {
+  const _e = React.createElement;
+  const [s, setS] = useState({ gina: Array(GINA_FACTORS.length).fill(false) });
+  const r = calcGINA(s);
+  const c = _toolColors(r.tier);
+  return _e(ToolCard, { title: 'GINA 천식 사망 위험인자', subtitle: '점수 아닌 위험인자 식별 (GINA 2024 가이드라인)', startOpen: props && props.startOpen },
+    _e('div', { style: { fontSize: '13px', color: '#5A6473', marginBottom: '10px' } }, '천식은 단일 점수형 사망률 모델보다 ', _e('strong', null, '위험인자 식별'), '이 표준. 3개 이상 해당 시 사망 고위험군으로 분류.'),
+    GINA_FACTORS.map((label, i) => _e('label', { key: i, style: { display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '5px 0', cursor: 'pointer' } },
+      _e('input', { type: 'checkbox', checked: s.gina[i], onChange: e => {
+        const arr = s.gina.slice(); arr[i] = e.target.checked;
+        setS(Object.assign({}, s, { gina: arr }));
+      }, style: { marginTop: '3px' } }),
+      _e('span', { style: { fontSize: '13px', lineHeight: 1.5 } }, label)
+    )),
+    _e('div', { style: { background: c.bg, color: c.fg, border: '1px solid ' + c.border, padding: '12px 16px', borderRadius: '4px', marginTop: '12px' } },
+      _e('div', { style: { fontSize: '13px', fontWeight: 600, marginBottom: '4px' } }, '해당 위험인자: ', _e('span', { style: { fontSize: '20px', fontWeight: 700 } }, r.count), ' / 8'),
+      _e('div', { style: { fontSize: '13px' } },
+        r.tier === 'high' ? '천식 사망 고위험군 — 적극적 추적·교육·ICS 순응도 점검 필요. 응급 행동지침(action plan) 제공.'
+        : r.tier === 'mid' ? '경계 — 정기 추적 + ICS 순응도 점검'
+        : '저위험'
+      )
+    )
+  );
+}
+
+// ===== GRACE Tool =====
+function GRACETool(props) {
+  const _e = React.createElement;
+  const [s, setS] = useState({ grace_age: '', grace_hr: '', grace_sbp: '', grace_cr: '', grace_killip: '', grace_arrest: false, grace_st: false, grace_biomarker: false });
+  const r = calcGRACE(s);
+  const c = _toolColors(r.tier);
+  function num(label, key, ph) {
+    return _e('div', null,
+      _e('label', { style: { display: 'block', fontSize: '12px', color: '#5A6473', marginBottom: '4px', fontWeight: 600 } }, label),
+      _e('input', { type: 'number', value: s[key], onChange: e => setS(Object.assign({}, s, { [key]: e.target.value })), placeholder: ph, style: { width: '100%', padding: '8px', border: '1px solid #E0E5EA', borderRadius: '4px', fontFamily: 'inherit', fontSize: '13px' } })
+    );
+  }
+  function chk(label, key) {
+    return _e('label', { style: { display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '5px 0', cursor: 'pointer' } },
+      _e('input', { type: 'checkbox', checked: s[key], onChange: e => setS(Object.assign({}, s, { [key]: e.target.checked })), style: { marginTop: '3px' } }),
+      _e('span', { style: { fontSize: '13px', lineHeight: 1.5 } }, label)
+    );
+  }
+  return _e(ToolCard, { title: 'GRACE Score', subtitle: 'ACS 입원·6개월 사망률 (Eagle 2004, Fox 2010) — ESC 표준', startOpen: props && props.startOpen },
+    _e('div', { style: { fontSize: '13px', color: '#5A6473', marginBottom: '10px' } }, 'ACS(불안정 협심증·NSTEMI·STEMI) 위험 층화의 표준. ESC·AHA 가이드라인 권고.'),
+    _e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' } },
+      num('나이 (세)', 'grace_age', ''),
+      num('맥박 (/분)', 'grace_hr', ''),
+      num('SBP (mmHg)', 'grace_sbp', ''),
+      num('Creatinine (mg/dL)', 'grace_cr', ''),
+      _e('div', null,
+        _e('label', { style: { display: 'block', fontSize: '12px', color: '#5A6473', marginBottom: '4px', fontWeight: 600 } }, 'Killip class'),
+        _e('select', { value: s.grace_killip, onChange: e => setS(Object.assign({}, s, { grace_killip: e.target.value })), style: { width: '100%', padding: '8px', border: '1px solid #E0E5EA', borderRadius: '4px', fontFamily: 'inherit', fontSize: '13px' } },
+          _e('option', { value: '' }, '—'),
+          _e('option', { value: '1' }, 'I · 심부전 징후 없음'),
+          _e('option', { value: '2' }, 'II · 폐 crackle, S3'),
+          _e('option', { value: '3' }, 'III · 폐부종'),
+          _e('option', { value: '4' }, 'IV · 심인성 쇼크')
+        )
+      )
+    ),
+    _e('div', { style: { marginTop: '8px' } },
+      chk('내원 시 심정지', 'grace_arrest'),
+      chk('ST 분절 변화 (depression 또는 elevation)', 'grace_st'),
+      chk('심장 효소 상승 (Troponin/CK-MB)', 'grace_biomarker')
+    ),
+    _e('div', { style: { background: c.bg, color: c.fg, border: '1px solid ' + c.border, padding: '12px 16px', borderRadius: '4px', marginTop: '12px' } },
+      _e('div', { style: { fontSize: '13px', fontWeight: 600, marginBottom: '4px' } }, 'GRACE Score: ', _e('span', { style: { fontSize: '20px', fontWeight: 700 } }, r.score)),
+      _e('div', { style: { fontSize: '13px' } },
+        '입원 사망률 ', _e('strong', null, r.mortInHosp + '%'), ' · 6개월 사망률 ', _e('strong', null, r.mort6mo + '%'), ' · ',
+        r.tier === 'low' ? '저위험 (보존적/조기 침습 검토)'
+        : r.tier === 'mid' ? '중등위험 (24–72h 내 침습적 평가)'
+        : '고위험 (24h 이내 조기 침습적 전략)'
+      )
+    )
+  );
+}
+
+// ===== MAGGIC Tool =====
+function MAGGICTool(props) {
+  const _e = React.createElement;
+  const [s, setS] = useState({
+    maggic_age: '', maggic_ef: '', maggic_sbp: '', maggic_cr: '', maggic_bmi: '', maggic_nyha: '',
+    maggic_male: false, maggic_dm: false, maggic_copd: false, maggic_smoker: false,
+    maggic_recent: false, maggic_no_bb: false, maggic_no_acei: false
+  });
+  const r = calcMAGGIC(s);
+  const c = _toolColors(r.tier);
+  function num(label, key, ph) {
+    return _e('div', null,
+      _e('label', { style: { display: 'block', fontSize: '12px', color: '#5A6473', marginBottom: '4px', fontWeight: 600 } }, label),
+      _e('input', { type: 'number', value: s[key], onChange: e => setS(Object.assign({}, s, { [key]: e.target.value })), placeholder: ph, style: { width: '100%', padding: '8px', border: '1px solid #E0E5EA', borderRadius: '4px', fontFamily: 'inherit', fontSize: '13px' } })
+    );
+  }
+  function chk(label, key) {
+    return _e('label', { style: { display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '4px 0', cursor: 'pointer' } },
+      _e('input', { type: 'checkbox', checked: s[key], onChange: e => setS(Object.assign({}, s, { [key]: e.target.checked })), style: { marginTop: '3px' } }),
+      _e('span', { style: { fontSize: '13px', lineHeight: 1.5 } }, label)
+    );
+  }
+  return _e(ToolCard, { title: 'MAGGIC Risk Score', subtitle: '심부전 1년·3년 사망률 (Pocock 2013, EHJ) — 단순화 버전', startOpen: props && props.startOpen },
+    _e('div', { style: { fontSize: '13px', color: '#5A6473', marginBottom: '10px' } }, '13개 변수 통합 모델. EF 무관(HFrEF·HFpEF 모두 적용). 외래·퇴원 시점 평가에 적합.'),
+    _e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' } },
+      num('나이 (세)', 'maggic_age', ''),
+      num('LVEF (%)', 'maggic_ef', ''),
+      num('SBP (mmHg)', 'maggic_sbp', ''),
+      num('BMI', 'maggic_bmi', ''),
+      num('Creatinine (mg/dL)', 'maggic_cr', ''),
+      _e('div', null,
+        _e('label', { style: { display: 'block', fontSize: '12px', color: '#5A6473', marginBottom: '4px', fontWeight: 600 } }, 'NYHA class'),
+        _e('select', { value: s.maggic_nyha, onChange: e => setS(Object.assign({}, s, { maggic_nyha: e.target.value })), style: { width: '100%', padding: '8px', border: '1px solid #E0E5EA', borderRadius: '4px', fontFamily: 'inherit', fontSize: '13px' } },
+          _e('option', { value: '' }, '—'),
+          _e('option', { value: '1' }, 'I · 무증상'),
+          _e('option', { value: '2' }, 'II · 경도 활동 시'),
+          _e('option', { value: '3' }, 'III · 경미 활동 시'),
+          _e('option', { value: '4' }, 'IV · 안정 시')
+        )
+      )
+    ),
+    _e('div', { style: { marginTop: '8px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '4px 16px' } },
+      chk('남성', 'maggic_male'),
+      chk('당뇨병', 'maggic_dm'),
+      chk('COPD', 'maggic_copd'),
+      chk('현재 흡연', 'maggic_smoker'),
+      chk('최근 18개월 내 진단', 'maggic_recent'),
+      chk('β-blocker 미사용', 'maggic_no_bb'),
+      chk('ACE-I/ARB 미사용', 'maggic_no_acei')
+    ),
+    _e('div', { style: { background: c.bg, color: c.fg, border: '1px solid ' + c.border, padding: '12px 16px', borderRadius: '4px', marginTop: '12px' } },
+      _e('div', { style: { fontSize: '13px', fontWeight: 600, marginBottom: '4px' } }, 'MAGGIC Score: ', _e('span', { style: { fontSize: '20px', fontWeight: 700 } }, r.score)),
+      _e('div', { style: { fontSize: '13px' } }, '1년 사망률 ', _e('strong', null, r.mort1y + '%'), ' · 3년 사망률 ', _e('strong', null, r.mort3y + '%'), ' · ',
+        r.tier === 'low' ? '저위험' : r.tier === 'mid' ? '중등위험' : '고위험'
+      )
+    )
+  );
+}
+
+// ===== Diagnosis-Specific Tools Container =====
+function DiagnosisSpecificTools(props) {
+  const _e = React.createElement;
+  const tools = DIAGNOSIS_SPECIFIC_TOOLS[props.code];
+  if (!tools || tools.length === 0) return null;
+  return _e('div', { style: { marginBottom: '14px' } },
+    _e('div', { style: { fontSize: '13px', fontWeight: 600, color: '#0C447C', marginBottom: '8px', paddingBottom: '4px', borderBottom: '1px solid #E0E5EA' } }, '진단 특이 사망률 평가 도구'),
+    tools.map((t, i) => {
+      if (t === 'DECAF') return _e(DECAFTool, { key: i });
+      if (t === 'BODE') return _e(BODETool, { key: i });
+      if (t === 'GINA') return _e(GINATool, { key: i });
+      if (t === 'GRACE') return _e(GRACETool, { key: i });
+      if (t === 'MAGGIC') return _e(MAGGICTool, { key: i });
+      return null;
+    })
+  );
+}
+
+
 // =================== App (의료진용 입원환자 진료 도구) ===================
 function App() {
   const _e = React.createElement;
@@ -2722,6 +3257,9 @@ function App() {
           _e('h3', { style: { margin: '0 0 8px', fontSize: '14px', fontWeight: 700, color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.08em' } }, '예후'),
           _e('p', { style: { margin: 0, fontSize: '13.5px', lineHeight: 1.7 } }, selected.prognosis)
         ) : null,
+
+        // 진단 특이 사망률 평가 도구 (DECAF/GRACE/MAGGIC/BODE/GINA)
+        DIAGNOSIS_SPECIFIC_TOOLS[selected.code] ? _e(DiagnosisSpecificTools, { code: selected.code }) : null,
 
         // 참고 가이드라인
         (function renderClinicalSection(title, items, color) {
