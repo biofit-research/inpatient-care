@@ -193,7 +193,7 @@ git checkout -b clinical-content/<진단코드>
 MIT License — 자세한 내용은 [LICENSE](./LICENSE) 참고.
 
 ```
-Copyright (c) 2024-2026 [JuneYoung/biofit-research]
+Copyright (c) 2024-2026 윤준영 (심장내과)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -215,7 +215,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND...
 
 ---
 
+## 개발자 / Author
+
+**윤준영** · 심장내과 · 개인 프로젝트
+📧 jyyoon@hotmail.com
+🌐 [inpatient-care.vercel.app](https://inpatient-care.vercel.app/)
+
 ## 연락처
 
-- Issues: [GitHub Issues](https://github.com/biofit-research/inpatient-care
-- 임상 검수 기여: PR 또는 [Discussions](https://github.com/biofit-research/inpatient-care)
+- Issues: [GitHub Issues](https://github.com/<your-org>/inpatient-clinical-toolkit/issues)
+- 임상 검수 기여: PR 또는 [Discussions](https://github.com/<your-org>/inpatient-clinical-toolkit/discussions)
+- 직접 문의: jyyoon@hotmail.com
