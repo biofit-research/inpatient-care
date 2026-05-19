@@ -2,8 +2,13 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
+  <!-- Vercel Analytics (개발자 대시보드용) -->
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>입원환자 진료 도구 — 의료진용</title>
+  <title>입원환자 임상 도우미 — 입원전담의·간호사용</title>
   <meta name="description" content="진단서 속 그 코드, 누구나 이해할 수 있게." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2180,7 +2185,7 @@ function RiskAssessment(props) {
   return _e('div', { style: wrapStyle },
     embedded ? _e('div', { style: { display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'14px' } },
       _e('div', null,
-        _e('span', { style: { fontSize:'11px', letterSpacing:'0.15em', textTransform:'uppercase', color:ACCENT_BLUE, fontWeight:700 } }, '의료진용 · CLINICAL'),
+        _e('span', { style: { fontSize:'11px', letterSpacing:'0.15em', textTransform:'uppercase', color:ACCENT_BLUE, fontWeight:700 } }, '입원전담의 · 간호사용 · CLINICAL'),
         _e('h2', { style: { margin:'4px 0 0', fontSize:'20px', fontWeight:700, color:INK } }, '사망확률 평가')
       ),
       _e('button', { onClick: () => setShowAssessment(false), style: { background:'transparent', border:'1px solid '+BORDER, padding:'6px 12px', borderRadius:'4px', cursor:'pointer', fontFamily:'inherit', fontSize:'12px', color:SUB } }, '접기')
@@ -2870,7 +2875,7 @@ function DiagnosisSpecificTools(props) {
 }
 
 
-// =================== App (의료진용 입원환자 진료 도구) ===================
+// =================== App (입원환자 임상 도우미 — 입원전담의·간호사용) ===================
 function App() {
   const _e = React.createElement;
   const [tab, setTab] = useState('diagnoses');
@@ -3152,10 +3157,10 @@ function App() {
       _e('div', { style: { maxWidth: '1100px', margin: '0 auto', padding: '20px 24px 0' } },
         _e('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '12px' } },
           _e('div', null,
-            _e('div', { style: { fontSize: '11px', letterSpacing: '0.15em', color: ACCENT, fontWeight: 700, textTransform: 'uppercase' } }, '의료진용 · INPATIENT CARE'),
-            _e('h1', { style: { margin: '4px 0 0', fontFamily: SERIF, fontSize: '26px', fontWeight: 700, color: INK } }, '입원환자 진료 도구')
+            _e('div', { style: { fontSize: '11px', letterSpacing: '0.15em', color: ACCENT, fontWeight: 700, textTransform: 'uppercase' } }, '입원전담의 · 간호사용 · INPATIENT CARE'),
+            _e('h1', { style: { margin: '4px 0 0', fontFamily: SERIF, fontSize: '26px', fontWeight: 700, color: INK } }, '입원환자 임상 도우미')
           ),
-          _e('span', { style: { fontSize: '11px', color: SUB } }, 'v1.0')
+          _e('span', { style: { fontSize: '11px', color: SUB } }, 'v1.3')
         ),
         _e('nav', { style: { display: 'flex', gap: '4px', marginTop: '14px' } },
           tabBtn('diagnoses', '다빈도 입원상병', DISEASES.length),
@@ -3168,7 +3173,15 @@ function App() {
     content,
 
     _e('footer', { style: { borderTop: '1px solid ' + BORDER, padding: '16px 24px', textAlign: 'center', fontSize: '11px', color: SUB } },
-      _e(React.Fragment, null, '본 도구는 의료진 임상 판단의 보조이며, 최종 결정은 임상의의 종합적 판단에 따릅니다.', _e('br'), '개발 · 윤준영 (심장내과) · 개인 프로젝트 · jyyoon@hotmail.com · © 2024–2026')
+      _e(React.Fragment, null,
+        '본 도구는 의료진 임상 판단의 보조이며, 최종 결정은 임상의의 종합적 판단에 따릅니다.',
+        _e('br'),
+        '개발 · 윤준영 (심장내과) · 개인 프로젝트 · jyyoon@hotmail.com · © 2024–2026',
+        _e('br'),
+        _e('span', { style: { fontSize: '10px', color: '#999', letterSpacing: '0.02em' } },
+          'v1.3 · 최종 업데이트 2026.05.19'
+        )
+      )
     )
   );
 }
