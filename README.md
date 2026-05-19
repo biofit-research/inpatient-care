@@ -1,7 +1,7 @@
-# 입원환자 진료 도구
-**Inpatient Clinical Toolkit · 의료진용 단일 페이지 임상 보조 도구**
+# 입원환자 임상 도우미
+**Inpatient Clinical Toolkit · 입원전담의·간호사용 단일 페이지 임상 도우미**
 
-> 입원환자 진료 의료진을 위한 단일 HTML 임상 도구. 다빈도 입원상병 101개 ICD-10 데이터베이스, 사망확률 평가 (CURB-65 · qSOFA · Charlson · CFS · NEWS2), 점수 해석 가이드를 통합했습니다.
+> 입원전담의·간호사를 위한 단일 HTML 임상 도우미. 다빈도 입원상병 101개 ICD-10 데이터베이스, 사망확률 평가 (CURB-65 · qSOFA · Charlson · CFS · NEWS2), 점수 해석 가이드를 통합했습니다.
 
 ---
 
